@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docker Hub & Repository</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --docker-blue: #0db7ed;
+    --docker-dark: #003f8a;
+    --dark-bg: #0a0e1a;
+    --card-bg: #0f1628;
+    --border: rgba(13,183,237,0.2);
+    --text: #e8f4fd;
+    --muted: #7a9bb5;
+    --accent: #00d4ff;
+    --green: #00e5a0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark-bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── NAV BAR ── */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 32px;
+    background: rgba(10,14,26,0.9);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+    flex-shrink: 0;
+  }
+  .nav-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    color: var(--docker-blue);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .whale { font-size: 22px; }
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .slide-counter {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .slide-counter span { color: var(--docker-blue); }
+  button.nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    transition: all .2s;
+  }
+  button.nav-btn:hover { background: var(--border); border-color: var(--docker-blue); color: var(--docker-blue); }
+  button.nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+  /* ── PROGRESS ── */
+  .progress-bar {
+    height: 3px;
+    background: rgba(13,183,237,0.1);
+    flex-shrink: 0;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--docker-dark), var(--docker-blue));
+    transition: width .4s ease;
+  }
+
+  /* ── SLIDE STAGE ── */
+  .stage {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 60px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity .45s ease, transform .45s ease;
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+  }
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* grid helper */
+  .slide-inner {
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  /* ── SLIDE 1: TITLE ── */
+  #s1 { background: radial-gradient(ellipse at 30% 50%, #001a40 0%, var(--dark-bg) 70%); }
+  #s1 .slide-inner { text-align: center; }
+  #s1 .tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--docker-blue);
+    border: 1px solid var(--border);
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  #s1 h1 {
+    font-size: clamp(52px, 8vw, 88px);
+    font-weight: 600;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 30%, var(--docker-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+  #s1 .subtitle {
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 300;
+    color: var(--docker-blue);
+    margin-bottom: 32px;
+  }
+  #s1 .tagline {
+    font-size: 16px;
+    color: var(--muted);
+    margin-bottom: 44px;
+    letter-spacing: .5px;
+  }
+  #s1 .pills {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  #s1 .pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(13,183,237,0.08);
+    border: 1px solid var(--border);
+    padding: 10px 22px;
+    border-radius: 40px;
+    font-size: 14px;
+  }
+
+  /* ── SLIDE 2: WHAT IS DOCKER HUB ── */
+  #s2 { background: var(--dark-bg); }
+  .slide-title {
+    font-size: clamp(26px, 4vw, 40px);
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+  .slide-title::after {
+    content: '';
+    display: block;
+    width: 48px;
+    height: 3px;
+    background: var(--docker-blue);
+    margin-top: 10px;
+    border-radius: 2px;
+  }
+  .slide-desc {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+    margin: 20px 0 32px;
+    max-width: 700px;
+  }
+  .feat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .feat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    transition: border-color .2s;
+  }
+  .feat-card:hover { border-color: var(--docker-blue); }
+  .feat-icon { font-size: 28px; flex-shrink: 0; }
+  .feat-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 5px; color: var(--docker-blue); }
+  .feat-card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* ── SLIDE 3: ARCHITECTURE ── */
+  #s3 { background: var(--dark-bg); }
+  .arch-layout { display: flex; gap: 24px; align-items: center; margin-top: 32px; }
+  .arch-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+  .arch-node {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+  }
+  .arch-node .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--docker-blue); flex-shrink: 0; }
+  .arch-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 180px;
+  }
+  .arch-hub {
+    background: linear-gradient(135deg, #003f8a, #0066cc);
+    border: 2px solid var(--docker-blue);
+    border-radius: 16px;
+    padding: 24px 28px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(13,183,237,0.2);
+  }
+  .arch-hub .whale-big { font-size: 36px; }
+  .arch-hub h3 { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--docker-blue); margin-top: 6px; }
+  .arch-hub p { font-size: 11px; color: var(--muted); }
+  .arch-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+  }
+  .arrow-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--docker-blue);
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+  .arrow-push { color: var(--green); }
+  .arrow-pull { color: var(--docker-blue); }
+
+  /* ── SLIDE 4: FEATURES ── */
+  #s4 { background: var(--dark-bg); }
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .feature-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 20px;
+    transition: all .2s;
+  }
+  .feature-item:hover { border-color: var(--docker-blue); transform: translateY(-2px); }
+  .feature-item .fi-icon { font-size: 26px; margin-bottom: 12px; }
+  .feature-item h4 { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+  .feature-item p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  /* ── SLIDE 5: REPO TYPES ── */
+  #s5 { background: var(--dark-bg); }
+  .repo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-top: 28px;
+  }
+  .repo-card {
+    border-radius: 14px;
+    padding: 26px 22px;
+    border: 1px solid var(--border);
+  }
+  .repo-card.public { background: linear-gradient(160deg, #001e3c, #0a0e1a); }
+  .repo-card.private { background: linear-gradient(160deg, #1a0030, #0a0e1a); }
+  .repo-card.official { background: linear-gradient(160deg, #001a20, #0a0e1a); }
+  .repo-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 3px 12px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+    font-family: 'Space Mono', monospace;
+  }
+  .public .repo-badge { background: rgba(13,183,237,0.15); color: var(--docker-blue); border: 1px solid rgba(13,183,237,0.3); }
+  .private .repo-badge { background: rgba(150,50,220,0.15); color: #b47fe8; border: 1px solid rgba(150,50,220,0.3); }
+  .official .repo-badge { background: rgba(0,229,160,0.12); color: var(--green); border: 1px solid rgba(0,229,160,0.3); }
+  .repo-card .ri { font-size: 30px; margin-bottom: 10px; }
+  .repo-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+  .repo-card ul { list-style: none; }
+  .repo-card ul li { font-size: 12px; color: var(--muted); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: flex-start; gap: 6px; }
+  .repo-card ul li::before { content: '▸'; color: var(--docker-blue); flex-shrink: 0; }
+
+  /* ── SLIDE 6: WORKFLOW ── */
+  #s6 { background: var(--dark-bg); }
+  .steps-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 28px;
+  }
+  .step-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .step-num {
+    flex: 0 0 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--docker-dark), var(--docker-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .step-content h4 { font-size: 14px; font-weight: 600; color: #fff; flex: 0 0 120px; }
+  .step-content code {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--docker-blue);
+    background: rgba(13,183,237,0.08);
+    padding: 6px 14px;
+    border-radius: 6px;
+    flex: 1;
+  }
+
+  /* ── DOT NAV ── */
+  .dot-nav {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px;
+    flex-shrink: 0;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(13,183,237,0.2);
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .dot.active { background: var(--docker-blue); transform: scale(1.4); }
+
+  /* key nav hint */
+  .key-hint {
+    text-align: center;
+    font-size: 11px;
+    color: rgba(122,155,181,0.5);
+    padding-bottom: 10px;
+    font-family: 'Space Mono', monospace;
+    flex-shrink: 0;
+  }
+
+  /* Decorative bg grid */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(13,183,237,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(13,183,237,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .stage, nav, .progress-bar, .dot-nav, .key-hint { position: relative; z-index: 1; }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <span class="whale">🐳</span>
+    <span>Docker Hub & Repository</span>
+  </div>
+  <div class="nav-controls">
+    <span class="slide-counter">Slide <span id="cur">1</span> of <span id="total">6</span></span>
+    <button class="nav-btn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="nav-btn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</nav>
+
+<div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+
+<!-- STAGE -->
+<div class="stage">
+
+  <!-- SLIDE 1 -->
+  <div class="slide active" id="s1">
+    <div class="slide-inner">
+      <div class="tag">Container Registry Platform</div>
+      <h1>Docker Hub</h1>
+      <div class="subtitle">& Repository</div>
+      <p class="tagline">The World's Largest Container Image Registry</p>
+      <div class="pills">
+        <div class="pill">🐳 Millions of images</div>
+        <div class="pill">🌐 Cloud-native registry</div>
+        <div class="pill">🔄 CI/CD integration</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide" id="s2">
+    <div class="slide-inner">
+      <h2 class="slide-title">What is Docker Hub?</h2>
+      <p class="slide-desc">Docker Hub is a cloud-based registry service that allows developers to link code repositories, build their applications, test them, and distribute container images. It's the world's largest library and community for container images.</p>
+      <div class="feat-grid">
+        <div class="feat-card"><div class="feat-icon">📦</div><div><h4>Image Registry</h4><p>Store, manage & distribute Docker images globally</p></div></div>
+        <div class="feat-card"><div class="feat-icon">🔍</div><div><h4>Search & Discover</h4><p>Browse millions of official & community images</p></div></div>
+        <div class="feat-card"><div class="feat-icon">🤝</div><div><h4>Collaboration</h4><p>Share images within teams & organizations</p></div></div>
+        <div class="feat-card"><div class="feat-icon">🔗</div><div><h4>Webhooks & API</h4><p>Automate workflows with rich integrations</p></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide" id="s3">
+    <div class="slide-inner">
+      <h2 class="slide-title">Docker Hub Architecture</h2>
+      <div class="arch-layout">
+        <div class="arch-col">
+          <div class="arch-node"><div class="dot"></div>Docker Desktop</div>
+          <div class="arch-node"><div class="dot"></div>CI/CD Pipelines</div>
+          <div class="arch-node"><div class="dot"></div>Build Systems</div>
+        </div>
+        <div class="arch-arrow">
+          <div class="arrow-line arrow-push">↑ PUSH</div>
+          <div style="color:var(--muted);font-size:18px;">⇄</div>
+          <div class="arrow-line arrow-pull">↓ PULL</div>
+        </div>
+        <div class="arch-center">
+          <div class="arch-hub">
+            <div class="whale-big">🐳</div>
+            <h3>Docker Hub</h3>
+            <p>Cloud Registry</p>
+          </div>
+        </div>
+        <div class="arch-arrow">
+          <div class="arrow-line arrow-push">↑ PUSH</div>
+          <div style="color:var(--muted);font-size:18px;">⇄</div>
+          <div class="arrow-line arrow-pull">↓ PULL</div>
+        </div>
+        <div class="arch-col">
+          <div class="arch-node"><div class="dot"></div>Kubernetes Clusters</div>
+          <div class="arch-node"><div class="dot"></div>Cloud Platforms</div>
+          <div class="arch-node"><div class="dot"></div>Developer Machines</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide" id="s4">
+    <div class="slide-inner">
+      <h2 class="slide-title">Key Docker Hub Features</h2>
+      <div class="features-grid">
+        <div class="feature-item"><div class="fi-icon">🏷️</div><h4>Image Tagging</h4><p>Version control for container images using semantic tags (latest, v1.0, v2.3)</p></div>
+        <div class="feature-item"><div class="fi-icon">🔄</div><h4>Automated Builds</h4><p>Auto-build images from GitHub or Bitbucket on code changes</p></div>
+        <div class="feature-item"><div class="fi-icon">🔐</div><h4>Vulnerability Scanning</h4><p>Automatic security scans powered by Snyk on every push</p></div>
+        <div class="feature-item"><div class="fi-icon">👥</div><h4>Teams & Orgs</h4><p>Role-based access control for enterprise collaboration</p></div>
+        <div class="feature-item"><div class="fi-icon">📊</div><h4>Usage Insights</h4><p>Track pulls, pushes and storage consumption analytics</p></div>
+        <div class="feature-item"><div class="fi-icon">🔗</div><h4>Webhooks</h4><p>Trigger downstream CI/CD pipelines on image updates</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide" id="s5">
+    <div class="slide-inner">
+      <h2 class="slide-title">Types of Docker Repositories</h2>
+      <div class="repo-grid">
+        <div class="repo-card public">
+          <div class="ri">🌍</div>
+          <div class="repo-badge">Public</div>
+          <h3>Public Repositories</h3>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Free & Open Access</p>
+          <ul>
+            <li>Accessible to anyone on the internet</li>
+            <li>Unlimited pulls for public images</li>
+            <li>Ideal for open-source projects</li>
+            <li>Free to create and maintain</li>
+          </ul>
+        </div>
+        <div class="repo-card private">
+          <div class="ri">🔒</div>
+          <div class="repo-badge">Private</div>
+          <h3>Private Repositories</h3>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Secure & Controlled</p>
+          <ul>
+            <li>Restricted to authorized users</li>
+            <li>Secure proprietary images</li>
+            <li>Team & organization management</li>
+            <li>Requires paid subscription for more</li>
+          </ul>
+        </div>
+        <div class="repo-card official">
+          <div class="ri">✅</div>
+          <div class="repo-badge">Official</div>
+          <h3>Official Images</h3>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Verified by Docker</p>
+          <ul>
+            <li>Maintained by Docker & partners</li>
+            <li>Security-scanned regularly</li>
+            <li>Best practices applied</li>
+            <li>Examples: nginx, ubuntu, python</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide" id="s6">
+    <div class="slide-inner">
+      <h2 class="slide-title">Docker Push & Pull Workflow</h2>
+      <div class="steps-flow">
+        <div class="step-row">
+          <div class="step-num">01</div>
+          <div class="step-content"><h4>Build Image</h4><code>docker build -t myapp:1.0 .</code></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">02</div>
+          <div class="step-content"><h4>Login to Hub</h4><code>docker login</code></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">03</div>
+          <div class="step-content"><h4>Tag Image</h4><code>docker tag myapp:1.0 username/myapp:1.0</code></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">04</div>
+          <div class="step-content"><h4>Push Image</h4><code>docker push username/myapp:1.0</code></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">05</div>
+          <div class="step-content"><h4>Pull Image</h4><code>docker pull username/myapp:1.0</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /stage -->
+
+<!-- DOT NAV -->
+<div class="dot-nav" id="dotNav"></div>
+<div class="key-hint">← → arrow keys to navigate</div>
+
+<script>
+  const total = 6;
+  let cur = 0;
+  const slides = document.querySelectorAll('.slide');
+  const prog = document.getElementById('prog');
+  const curEl = document.getElementById('cur');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const dotNav = document.getElementById('dotNav');
+
+  // Build dots
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotNav.appendChild(d);
+  }
+
+  function goTo(idx) {
+    slides[cur].classList.remove('active');
+    slides[cur].classList.add('exit');
+    const prev = cur;
+    cur = idx;
+    setTimeout(() => slides[prev].classList.remove('exit'), 450);
+    slides[cur].classList.add('active');
+    update();
+  }
+
+  function go(dir) {
+    const next = cur + dir;
+    if (next < 0 || next >= total) return;
+    goTo(next);
+  }
+
+  function update() {
+    curEl.textContent = cur + 1;
+    prog.style.width = ((cur + 1) / total * 100) + '%';
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === total - 1;
+    document.querySelectorAll('.dot').forEach((d, i) => {
+      d.classList.toggle('active', i === cur);
+    });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(-1);
+  });
+
+  update();
+</script>
+</body>
+</html>
